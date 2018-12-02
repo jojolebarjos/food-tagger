@@ -61,8 +61,16 @@ def from_conllu(file):
 
 # Get complete Part-of-Speech dataset
 def get_samples(test=False):
+    
+    # Use Universal Dependencies to cover large vocabulary
     path = TEST_CONLLU if test else TRAIN_CONLLU
     with io.open(path, 'r', newline='\n', encoding='utf-8') as file:
         samples = from_conllu(file)
-    # TODO also use task-specific samples
+    
+    # Use specialized corpus to fine-tune
+    from ..entity.dataset import get_samples as entity_get_samples
+    for _, tokens, pos_tags, _ in entity_get_samples(test=test):
+        sample = (tokens, pos_tags)
+        samples.append(sample)
+    
     return samples
