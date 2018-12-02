@@ -54,11 +54,34 @@ def from_tab(file):
 def to_tab(file, samples):
     for text, tokens, pos_tags, entity_tags in samples:
         if text is not None:
-            file.write(f'# text = {text}')
+            file.write(f'# text = {text}\n')
         for index, (token, pos_tag, entity_tag) in enumerate(zip(tokens, pos_tags, entity_tags)):
             file.write(f'{index + 1}\t{token}\t{pos_tag}\t{entity_tag}\n')
         file.write('\n')
     file.flush()
+
+
+# Import from Excel file
+def from_excel(file):
+    import pandas
+    dump = pandas.read_excel(file, dtype=str, na_values=[], keep_default_na=False, header=None)
+    dump = '\r\n'.join('\t'.join(row) for _, row in dump.iterrows()) + '\r\n\r\n'
+    samples = from_tab(io.StringIO(dump))
+    return samples
+
+
+# Export to Excel file
+def to_excel(file, samples):
+    import pandas
+    data = []
+    for text, tokens, pos_tags, entity_tags in samples:
+        if text is not None:
+            data.append([f'# text = {text}', '', '', ''])
+        for index, (token, pos_tag, entity_tag) in enumerate(zip(tokens, pos_tags, entity_tags)):
+            data.append([str(index + 1), token, pos_tag, entity_tag])
+        data.append(['', '', '', ''])
+    dump = pandas.DataFrame(data, dtype=str)
+    dump.to_excel(file, sheet_name='samples', header=False, index=False)
 
 
 # Get entity set

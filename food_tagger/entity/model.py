@@ -63,5 +63,9 @@ class EntityLayer(Layer):
         pos_tags = sample['pos_tags']
         features = extract_features(tokens, pos_tags)
         entity_tags = self.tagger.tag(features)
+        entity_tags_probabilities = [self.tagger.marginal(entity_tags[i], i) for i in range(len(tokens))]
+        entity_tags_probability = self.tagger.probability(entity_tags)
         sample['entity_tags'] = entity_tags
+        sample['entity_tags_probabilities'] = entity_tags_probabilities
+        sample['entity_tags_probability'] = entity_tags_probability
         return sample
