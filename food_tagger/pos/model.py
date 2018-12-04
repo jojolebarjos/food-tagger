@@ -76,7 +76,29 @@ def train(max_iterations=100):
     # Train
     trainer.train(MODEL_CRFSUITE)
     
-    # TODO evaluate
+    # Load tagger
+    tagger = pycrfsuite.Tagger()
+    tagger.open(MODEL_CRFSUITE)
+    
+    # Apply to datasets
+    for name, split in [('Train', False), ('Test', True)]:
+        truth = []
+        prediction = []
+        for tokens, tags in get_samples(test=split):
+            features = extract_features(tokens)
+            predicted_tags = tagger.tag(features)
+            truth.extend(tags)
+            prediction.extend(predicted_tags)
+        
+        # Compute accuracies
+        # TODO precision, recall, F-1
+        def accuracy(truth, prediction):
+            if len(truth) == 0:
+                return 0.0
+            return 100.0 * sum(a == b for a, b in zip(truth, prediction)) / len(truth)
+        pos_accuracy = accuracy(truth, prediction)
+        print(f'{name} accuracies:')
+        print(f'  PoS:        {pos_accuracy: 3.2f}')
 
 
 # Part-of-Speech layer

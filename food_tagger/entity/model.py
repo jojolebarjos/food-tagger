@@ -6,7 +6,7 @@ import pycrfsuite
 
 from .dataset import get_samples
 from ..layer import Layer
-from ..pos.model import extract_features as pos_extract_features
+from ..pos.model import extract_features as pos_extract_features, MODEL_CRFSUITE as POS_MODEL_CRFSUITE
 
 
 # Model file
@@ -47,7 +47,51 @@ def train(max_iterations=50):
     # Train
     trainer.train(MODEL_CRFSUITE)
     
-    # TODO evaluate
+    # Load taggers
+    pos_tagger = pycrfsuite.Tagger()
+    pos_tagger.open(POS_MODEL_CRFSUITE)
+    entity_tagger = pycrfsuite.Tagger()
+    entity_tagger.open(MODEL_CRFSUITE)
+    
+    # Apply to datasets
+    for name, split in [('Train', False), ('Test', True)]:
+        pos_truth = []
+        pos_prediction = []
+        entity_truth = []
+        entity_prediction = []
+        entity_cascaded_prediction = []
+        for _, tokens, pos_tags, entity_tags in get_samples(test=split):
+            
+            # Predict Part-of-Speech
+            pos_features = pos_extract_features(tokens)
+            predicted_pos_tags = pos_tagger.tag(pos_features)
+            pos_truth.extend(pos_tags)
+            pos_prediction.extend(predicted_pos_tags)
+            
+            # Predict entity tags, using true PoS tags
+            entity_features = extract_features(tokens, pos_tags)
+            predicted_entity_tags = entity_tagger.tag(entity_features)
+            entity_truth.extend(entity_tags)
+            entity_prediction.extend(predicted_entity_tags)
+            
+            # Predict entity tags, using predicted 
+            entity_features = extract_features(tokens, predicted_pos_tags)
+            predicted_entity_tags = entity_tagger.tag(entity_features)
+            entity_cascaded_prediction.extend(predicted_entity_tags)
+        
+        # Compute accuracies
+        # TODO precision, recall, F-1
+        def accuracy(truth, prediction):
+            if len(truth) == 0:
+                return 0.0
+            return 100.0 * sum(a == b for a, b in zip(truth, prediction)) / len(truth)
+        pos_accuracy = accuracy(pos_truth, pos_prediction)
+        entity_accuracy = accuracy(entity_truth, entity_prediction)
+        entity_cascaded_accuracy = accuracy(entity_truth, entity_cascaded_prediction)
+        print(f'{name} accuracies:')
+        print(f'  PoS:        {pos_accuracy: 3.2f}')
+        print(f'  Entity:     {entity_accuracy: 3.2f}')
+        print(f'  PoS+Entity: {entity_cascaded_accuracy: 3.2f}')
 
 
 # Isolate entities
