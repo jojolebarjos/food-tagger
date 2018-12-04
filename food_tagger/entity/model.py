@@ -50,6 +50,26 @@ def train(max_iterations=50):
     # TODO evaluate
 
 
+# Isolate entities
+def bio_to_spans(tags):
+    spans = []
+    labels = []
+    index = 0
+    while index < len(tags):
+        if '-' in tags[index]:
+            label = tags[index][2:]
+            start = index
+            index += 1
+            while index < len(tags) and tags[index] == 'I-' + label:
+                index += 1
+            span = (start, index)
+            spans.append(span)
+            labels.append(label)
+        else:
+            index += 1
+    return spans, labels
+
+
 # Ingredient entity layer
 class EntityLayer(Layer):
     def __init__(self):
@@ -57,15 +77,23 @@ class EntityLayer(Layer):
         tagger.open(MODEL_CRFSUITE)
         self.tagger = tagger
     
+    # Apply model
     def apply(self, sample):
-        sample = dict(sample)
         tokens = sample['tokens']
         pos_tags = sample['pos_tags']
         features = extract_features(tokens, pos_tags)
         entity_tags = self.tagger.tag(features)
         entity_tags_probabilities = [self.tagger.marginal(entity_tags[i], i) for i in range(len(tokens))]
         entity_tags_probability = self.tagger.probability(entity_tags)
-        sample['entity_tags'] = entity_tags
-        sample['entity_tags_probabilities'] = entity_tags_probabilities
-        sample['entity_tags_probability'] = entity_tags_probability
+        entity_spans, entity_labels = bio_to_spans(entity_tags)
+        
+        # Pack
+        sample = {
+            **sample,
+            'entity_tags': entity_tags,
+            'entity_tags_probabilities': entity_tags_probabilities,
+            'entity_tags_probability': entity_tags_probability,
+            'entity_spans': entity_spans,
+            'entity_labels': entity_labels
+        }
         return sample

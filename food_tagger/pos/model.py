@@ -3,6 +3,7 @@
 
 import os
 import pycrfsuite
+import regex as re
 
 from .dataset import get_samples
 from ..layer import Layer
@@ -13,13 +14,21 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 MODEL_CRFSUITE = os.path.join(HERE, 'model.crfsuite')
 
 
+# Simplify token
+DIGITS_REGEX = re.compile(r'\d+', re.UNICODE)
+def simplify(token):
+    token = token.lower()
+    token = DIGITS_REGEX.sub('0', token)
+    return token
+
+
 # Generate features for Part-of-Speech tagger
 def extract_features(tokens):
-    # TODO use lemma at some point, maybe in a dedicated layer?
     
     # Prepare features
-    # TODO improve features
-    words = [token.lower() for token in tokens]
+    # TODO use prefixes and suffixes?
+    # TODO use lemma at some point, maybe in a dedicated layer?
+    words = [simplify(token) for token in tokens]
 
     # Collect features
     result = []
